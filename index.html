@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ส่งงานวิดีโอ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --text: #1c2430;
+    --text-muted: #667085;
+    --border: #e2e6ec;
+    --primary: #2d6cdf;
+    --primary-dark: #1f52ac;
+    --primary-soft: #eaf1fd;
+    --danger: #d64545;
+    --success: #1f9d55;
+    --success-soft: #e8f8ee;
+    --radius: 14px;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans Thai', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+  }
+
+  /* ---------- shared ---------- */
+  .wrap { max-width: 640px; margin: 0 auto; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+  }
+  .submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .submit-btn:hover { background: var(--primary-dark); }
+  .submit-btn:disabled { background: #a9bcd8; cursor: not-allowed; }
+  .msg {
+    display: none;
+    border-radius: 10px;
+    padding: 13px 15px;
+    font-size: 14px;
+    margin-bottom: 16px;
+    font-weight: 500;
+  }
+  .msg.show { display: block; }
+  .msg.success { background: var(--success-soft); color: var(--success); }
+  .msg.error { background: #fdeceb; color: var(--danger); }
+  .msg.warn { background: #fff6e5; color: #96690a; }
+  .footer-note {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 20px;
+  }
+  .quiet-link {
+    display: block;
+    text-align: center;
+    margin-top: 14px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+  .quiet-link:hover { color: var(--primary-dark); text-decoration: underline; }
+  [hidden] { display: none !important; }
+
+  /* ---------- submit form ---------- */
+  .header { text-align: center; margin-bottom: 20px; }
+  .header .badge {
+    display: inline-block;
+    background: var(--primary-soft);
+    color: var(--primary-dark);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 999px;
+    margin-bottom: 10px;
+  }
+  .header h1 { font-size: 22px; margin: 0 0 6px; font-weight: 700; }
+  .header p { margin: 0; color: var(--text-muted); font-size: 14px; }
+  .field { margin-bottom: 20px; }
+  .field:last-child { margin-bottom: 0; }
+  label.field-label {
+    display: block;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+  label.field-label .req { color: var(--danger); margin-left: 2px; }
+  .hint { font-size: 12.5px; color: var(--text-muted); margin-top: 6px; }
+  select, input[type=text], input[type=url], input[type=password] {
+    width: 100%;
+    font-family: inherit;
+    font-size: 15px;
+    padding: 11px 13px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  select:focus, input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+  }
+  .room-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .room-btn {
+    padding: 10px 6px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .room-btn:hover { border-color: var(--primary); color: var(--primary-dark); }
+  .room-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+  .member-search {
+    margin-bottom: 10px;
+  }
+  .member-list {
+    max-height: 260px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 6px;
+    background: #fafbfc;
+  }
+  .member-list.disabled {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 13.5px;
+    padding: 30px 10px;
+    text-align: center;
+  }
+  .member-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .member-item:hover { background: #f0f3f8; }
+  .member-item input { width: 17px; height: 17px; accent-color: var(--primary); flex-shrink: 0; }
+  .member-item .no { color: var(--text-muted); font-size: 12.5px; width: 22px; flex-shrink: 0; }
+  .member-item .name { font-size: 14.5px; }
+  .member-item.hidden { display: none; }
+  .selected-summary {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--primary-dark);
+    font-weight: 600;
+    min-height: 18px;
+  }
+
+  /* ---------- admin gate ---------- */
+  .gate-wrap { max-width: 380px; margin: 60px auto 0; }
+
+  /* ---------- admin dashboard (prefixed adm-) ---------- */
+  .adm-wrap { max-width: 1100px; margin: 0 auto; }
+  .adm-header { margin-bottom: 18px; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .adm-header h1 { font-size: 21px; margin: 0 0 4px; font-weight: 700; }
+  .adm-header p { margin: 0; color: var(--text-muted); font-size: 13.5px; }
+  .adm-toolbar {
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    margin-bottom: 16px;
+  }
+  .adm-toolbar input[type=text] {
+    flex: 1; min-width: 200px;
+    padding: 10px 13px; border: 1px solid var(--border); border-radius: 10px;
+    font-family: inherit; font-size: 14px; outline: none;
+  }
+  .adm-toolbar input[type=text]:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+  .adm-room-filter {
+    padding: 10px 13px; border: 1px solid var(--border); border-radius: 10px;
+    font-family: inherit; font-size: 14px; background: #fff;
+  }
+  .adm-btn {
+    padding: 10px 16px; border-radius: 10px; border: 1px solid var(--border);
+    background: #fff; font-family: inherit; font-size: 14px; font-weight: 600;
+    cursor: pointer; color: var(--text); white-space: nowrap;
+  }
+  .adm-btn:hover { border-color: var(--primary); color: var(--primary-dark); }
+  .adm-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .adm-btn.primary:hover { background: var(--primary-dark); }
+  .adm-btn:disabled { opacity: .55; cursor: not-allowed; }
+  .adm-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+  }
+  .adm-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .adm-table thead th {
+    text-align: left; padding: 12px 14px; background: #f8f9fb;
+    border-bottom: 1px solid var(--border); font-weight: 700; color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .adm-table tbody td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .adm-table tbody tr:last-child td { border-bottom: none; }
+  .adm-table tbody tr:hover { background: #fafbfc; }
+  .adm-table td.link a { color: var(--primary); text-decoration: none; }
+  .adm-table td.link a:hover { text-decoration: underline; }
+  .adm-state {
+    padding: 40px 20px; text-align: center; color: var(--text-muted); font-size: 14px;
+  }
+  .adm-state.error { color: var(--danger); }
+  .adm-count-badge {
+    font-size: 12.5px; font-weight: 700; color: var(--primary-dark);
+    background: var(--primary-soft); padding: 3px 10px; border-radius: 999px;
+  }
+  .adm-setup-msg {
+    background: #fff6e5; color: #96690a; padding: 13px 15px; border-radius: 10px;
+    font-size: 13.5px; margin-bottom: 16px; display: none;
+  }
+  .adm-setup-msg.show { display: block; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .adm-toolbar, .no-print { display: none !important; }
+    .adm-card { border: none; box-shadow: none; }
+    .adm-header p.print-only { display: block !important; }
+  }
+  .print-only { display: none; }
+</style>
+</head>
+<body>
+
+<!-- ================= หน้าส่งงาน (นักเรียน) ================= -->
+<div class="wrap" id="submitSection">
+  <div class="header">
+    <span class="badge">งานกลุ่ม · ส่งลิงก์วิดีโอ</span>
+    <h1>แบบฟอร์มส่งงานวิดีโอ</h1>
+    <p>ม.6/2, 6/3, 6/4, 6/5 &mdash; เลือกห้อง เลือกสมาชิกในกลุ่ม แล้วส่งลิงก์วิดีโอ</p>
+  </div>
+
+  <div id="setupWarning" class="msg warn"></div>
+  <div id="resultMsg" class="msg"></div>
+
+  <form id="submitForm">
+    <div class="card">
+      <div class="field">
+        <label class="field-label">ห้อง<span class="req">*</span></label>
+        <div class="room-grid" id="roomGrid"></div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">สมาชิกในกลุ่ม (เลือกได้หลายคน)<span class="req">*</span></label>
+        <input type="text" id="memberSearch" class="member-search" placeholder="พิมพ์ค้นหาชื่อ..." disabled>
+        <div class="member-list disabled" id="memberList">กรุณาเลือกห้องก่อน</div>
+        <div class="selected-summary" id="selectedSummary"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label class="field-label" for="title">ชื่อเรื่อง / หัวข้องานที่ทำ<span class="req">*</span></label>
+        <input type="text" id="title" placeholder="เช่น การประยุกต์ใช้ตรีโกณมิติในชีวิตประจำวัน">
+      </div>
+      <div class="field">
+        <label class="field-label" for="link">ลิงก์วิดีโอ<span class="req">*</span></label>
+        <input type="url" id="link" placeholder="https://...">
+        <div class="hint">วางลิงก์ YouTube, Google Drive หรืออื่น ๆ ที่เปิดดูได้</div>
+      </div>
+    </div>
+
+    <button type="submit" class="submit-btn" id="submitBtn">ส่งงาน</button>
+  </form>
+
+  <a href="#" class="quiet-link" id="adminLink">สำหรับคุณครู</a>
+  <div class="footer-note">โรงเรียนโซ่พิสัยพิทยาคม</div>
+</div>
+
+<!-- ================= ด่านรหัสผ่าน (ก่อนเข้า admin) ================= -->
+<div class="gate-wrap" id="adminGateSection" hidden>
+  <div class="card">
+    <div class="field">
+      <label class="field-label">รหัสผ่านสำหรับผู้ดูแล</label>
+      <input type="password" id="adminPassInput" placeholder="กรอกรหัสผ่าน">
+    </div>
+    <button class="submit-btn" id="adminUnlockBtn" type="button">เข้าสู่ระบบ</button>
+    <div class="msg error" id="adminGateError" style="margin-top:14px;">รหัสผ่านไม่ถูกต้อง</div>
+  </div>
+  <a href="#" class="quiet-link" id="backToFormLink">กลับหน้าส่งงาน</a>
+</div>
+
+<!-- ================= หน้า admin (คุณครู) ================= -->
+<div class="adm-wrap" id="adminSection" hidden>
+  <div class="adm-header">
+    <div>
+      <h1>รายการส่งงานวิดีโอ <span class="adm-count-badge" id="countBadge">0</span></h1>
+      <p>โรงเรียนโซ่พิสัยพิทยาคม — สรุปคำตอบทั้งหมดที่นักเรียนส่งเข้ามา</p>
+      <p class="print-only" id="printDate"></p>
+    </div>
+    <div class="no-print" style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="adm-btn" id="refreshBtn">🔄 รีเฟรช</button>
+      <button class="adm-btn" id="exportExcelBtn">📊 ดาวน์โหลด Excel</button>
+      <button class="adm-btn primary" id="exportPdfBtn">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
+    </div>
+  </div>
+
+  <div class="adm-setup-msg" id="setupMsg"></div>
+
+  <div class="adm-toolbar no-print">
+    <input type="text" id="searchBox" placeholder="ค้นหาชื่อนักเรียน, ชื่อเรื่อง...">
+    <select class="adm-room-filter" id="roomFilter">
+      <option value="">ทุกห้อง</option>
+      <option value="ม.6/2">ม.6/2</option>
+      <option value="ม.6/3">ม.6/3</option>
+      <option value="ม.6/4">ม.6/4</option>
+      <option value="ม.6/5">ม.6/5</option>
+    </select>
+  </div>
+
+  <div class="adm-card">
+    <table class="adm-table" id="dataTable" style="display:none;">
+      <thead>
+        <tr>
+          <th>เวลาที่ส่ง</th>
+          <th>ห้อง</th>
+          <th>สมาชิกในกลุ่ม</th>
+          <th>ชื่อเรื่อง</th>
+          <th>ลิงก์วิดีโอ</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div class="adm-state" id="stateBox">กำลังโหลดข้อมูล...</div>
+  </div>
+
+  <a href="#" class="quiet-link no-print" id="logoutAdminLink">กลับหน้าส่งงาน</a>
+</div>
+
+<script>
+// ตั้งค่า URL ของ Google Apps Script Web App ที่ deploy แล้ว
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxG480dJj-3eim_S3RszPKqsKW-lxcDafdC2jXNagwSZxrsOYoZjQR05zlUa7EXYh9zRQ/exec";
+
+// รหัสผ่านสำหรับเข้าหน้า admin (แก้ได้ตรงนี้)
+const ADMIN_PASSCODE = "1234";
+
+const STUDENTS = {"6/2": [{"no": 1, "id": 13550, "name": "นายกฤตติกุล แก้วจันทร์"}, {"no": 2, "id": 13353, "name": "นายกฤษณะ ศรีจันทร์"}, {"no": 3, "id": 14166, "name": "นายณัฐพงษ์ คำภูมี"}, {"no": 4, "id": 15190, "name": "นายธีรภัทร รูปขันธ์"}, {"no": 5, "id": 13393, "name": "นายปฐมกาล สีชาวนา"}, {"no": 6, "id": 15192, "name": "นายภรัณยู อุบลเกิด"}, {"no": 7, "id": 13396, "name": "นายสุบิน บรรดาศักดิ์"}, {"no": 8, "id": 13398, "name": "นางสาวกนิษฐา ศิริแสน"}, {"no": 9, "id": 13399, "name": "นางสาวกัญญาณัฐ ป้องปิด"}, {"no": 10, "id": 15193, "name": "นางสาวเขมิกา มังศรี"}, {"no": 11, "id": 13326, "name": "นางสาวจตุพร แสงชัย"}, {"no": 12, "id": 15194, "name": "นางสาวจารุวรรณ แก้ววิเศษ"}, {"no": 13, "id": 13328, "name": "นางสาวฉันท์ชนก ดีรัดรัมย์"}, {"no": 14, "id": 13360, "name": "นางสาวชญานิน จันทรประทักมี"}, {"no": 15, "id": 13362, "name": "นางสาวชญานุตม์ วิชัยโย"}, {"no": 16, "id": 13363, "name": "นางสาวชนิตรา โพธิ์ทอง"}, {"no": 17, "id": 13405, "name": "นางสาวธัญญธารี สุขโต"}, {"no": 18, "id": 13365, "name": "นางสาวธัญนันท์ วงกะโซ่"}, {"no": 19, "id": 14153, "name": "นางสาวเบญญทิพย์ นันทวงศ์"}, {"no": 20, "id": 13368, "name": "นางสาวปรามมานัน อุคำพันธ์"}, {"no": 21, "id": 13737, "name": "นางสาวปารตี บัวใหญ่"}, {"no": 22, "id": 15195, "name": "นางสาวปาริฉัตร เดชชัยขันธ์"}, {"no": 23, "id": 13371, "name": "นางสาวพรทิวา ไชยเนตร"}, {"no": 24, "id": 13372, "name": "นางสาวพรพิมล คำประชุม"}, {"no": 25, "id": 15196, "name": "นางสาวพัชรินทร์ หมั่นกิจ"}, {"no": 26, "id": 13375, "name": "นางสาวพัชรินทร์ พลโท"}, {"no": 27, "id": 13376, "name": "นางสาวภัคจิรา ศรีวาปี"}, {"no": 28, "id": 13378, "name": "นางสาวภัทรานิษฐ์ โชคบัณฑิต"}, {"no": 29, "id": 13339, "name": "นางสาวมทณา พลไธสง"}, {"no": 30, "id": 14737, "name": "นางสาวสุธาสินี จันทร์งาม"}, {"no": 31, "id": 13739, "name": "นางสาวชัชชญา สายโน"}, {"no": 32, "id": 13382, "name": "นางสาวอภัตชญา คำภาบุตร"}, {"no": 33, "id": 15197, "name": "นางสาวอรปรียา สุโคตร"}, {"no": 34, "id": 13384, "name": "นางสาวอัณชิษฐา อุส่าห์"}], "6/3": [{"no": 1, "id": 13498, "name": "นายชยพล นิลเกตุ"}, {"no": 2, "id": 13571, "name": "นายทวีวุฒิ แก้วคำ"}, {"no": 3, "id": 13394, "name": "นายพีรณัฐ เรืองนุ้ย"}, {"no": 4, "id": 13475, "name": "นายวีรชัย สะตะ"}, {"no": 5, "id": 13356, "name": "นายสหภูมิ ธรรมประโยชน์"}, {"no": 6, "id": 13357, "name": "นางสาวกนกพร เรือนนา"}, {"no": 7, "id": 13325, "name": "นางสาวกมลชนก คำนนท์"}, {"no": 8, "id": 13435, "name": "นางสาวกฤติกา จันทะแจ่ม"}, {"no": 9, "id": 13584, "name": "นางสาวกาญจนา ภูลายเหลือง"}, {"no": 10, "id": 13364, "name": "นางสาวชมภูนุช คิดคำนวล"}, {"no": 11, "id": 15201, "name": "นางสาวฐิตารีย์ พรมโคตร"}, {"no": 12, "id": 13367, "name": "นางสาวธิติมา พรหมเสนา"}, {"no": 13, "id": 13408, "name": "นางสาวพลอยชมพู เนื่องลี"}, {"no": 14, "id": 15202, "name": "นางสาวพัชรี วงค์เหลา"}, {"no": 15, "id": 13455, "name": "นางสาวภานุรัตน์ ภูนุภา"}, {"no": 16, "id": 15203, "name": "นางสาวเมธาพร วงค์คำจันทร์"}, {"no": 17, "id": 13413, "name": "นางสาวรวินันท์ หาญจริง"}, {"no": 18, "id": 15204, "name": "นางสาวรัชฎาพร บุญประคม"}, {"no": 19, "id": 15205, "name": "นางสาวรัชดา ชานนท์"}, {"no": 20, "id": 13722, "name": "นางสาววรรณภรณ์ เรืองสวัสดิ์"}, {"no": 21, "id": 15206, "name": "นางสาววริศรา บัวแพง"}, {"no": 22, "id": 13562, "name": "นางสาววิภาดา ทองจินดา"}, {"no": 23, "id": 13593, "name": "นางสาววีรภัทรา ทนทอง"}, {"no": 24, "id": 13416, "name": "นางสาวศุภิสรา แสงสุดตา"}, {"no": 25, "id": 15208, "name": "นางสาวสุชาวดี วงค์สอน"}, {"no": 26, "id": 15209, "name": "นางสาวสุธิดา ตรีรัตน์"}, {"no": 27, "id": 13380, "name": "นางสาวสุพรรษา รุ่งรัมย์"}, {"no": 28, "id": 13381, "name": "นางสาวอทิตยา ทองลาด"}, {"no": 29, "id": 13527, "name": "นางสาวอรัญญา ฮาบละคร"}, {"no": 30, "id": 13386, "name": "นางสาวอารีรัตน์ อาจลุน"}, {"no": 31, "id": 13324, "name": "นางสาวกนกพร เพ็งโสภา"}, {"no": 32, "id": 13382, "name": "นางสาวอภัตชญา คำภาบุตร"}, {"no": 33, "id": 15197, "name": "นางสาวอรปรียา สุโคตร"}, {"no": 34, "id": 13384, "name": "นางสาวอัณชิษฐา อุส่าห์"}], "6/4": [{"no": 1, "id": 13423, "name": "นายกฤษณศักดิ์ พิมพากุล"}, {"no": 2, "id": 15210, "name": "นายเกียรติศักดิ์ ตุ้ยแคน"}, {"no": 3, "id": 13502, "name": "นายณัฐวุฒิ โพธิ์ศรี"}, {"no": 4, "id": 13573, "name": "นายธรรมนูญ กัญญาศัย"}, {"no": 5, "id": 15211, "name": "นายนิรุตต์ ลือชาพันธ์"}, {"no": 6, "id": 13729, "name": "นายพงศกร สอนสุภาพ"}, {"no": 7, "id": 15212, "name": "นายพิทวัฒน์ รูปขันธ์"}, {"no": 8, "id": 13509, "name": "นายภคนันท์ พิสัยสุข"}, {"no": 9, "id": 15213, "name": "นายภูธเนตร โพธิ์งาม"}, {"no": 10, "id": 15214, "name": "นายภูมิภัทร คำมุงคุณ"}, {"no": 11, "id": 13511, "name": "นายวรวิช ชมชัยรัตน์"}, {"no": 12, "id": 15215, "name": "นายวริทธิ์ อาจวิชัย"}, {"no": 13, "id": 13582, "name": "นายอภิชน โคตรศรีเมือง"}, {"no": 14, "id": 13437, "name": "นางสาวกัลยาณี มงคลยิ่ง"}, {"no": 15, "id": 13516, "name": "นางสาวกิติยาพร ชัยเวสน์"}, {"no": 16, "id": 13517, "name": "นางสาวขวัญข้าว พาละหาด"}, {"no": 17, "id": 13438, "name": "นางสาวคณิตฐา พลเยี่ยม"}, {"no": 18, "id": 13402, "name": "นางสาวจีรวรรณ คุณวงค์"}, {"no": 19, "id": 13440, "name": "นางสาวชนาภา แก้วหล่อ"}, {"no": 20, "id": 13618, "name": "นางสาวญาณิศา เอกตาแสง"}, {"no": 21, "id": 13445, "name": "นางสาวณัฐณิชา นันทะเสนา"}, {"no": 22, "id": 13518, "name": "นางสาวณัฐพร ตาลสิทธิ์"}, {"no": 23, "id": 13449, "name": "นางสาวนริศรา พิมพ์ทอง"}, {"no": 24, "id": 13373, "name": "นางสาวพัชราภา นันทะ"}, {"no": 25, "id": 13544, "name": "นางสาวพิชามญช์ คุณวงศ์"}, {"no": 26, "id": 14726, "name": "นางสาวภัทรภากร แจ่มใส"}, {"no": 27, "id": 13415, "name": "นางสาววริษา ศรีรัตนาม"}, {"no": 28, "id": 13345, "name": "นางสาววิลาสินี เสียงเย็น"}, {"no": 29, "id": 13347, "name": "นางสาวศิรประภา โคตรมี"}, {"no": 30, "id": 13418, "name": "นางสาวสุชานันท์ อาจวิชัย"}, {"no": 31, "id": 13526, "name": "นางสาวอรปรียา ลีแสน"}, {"no": 32, "id": 13597, "name": "นางสาวอินทิรา ศรีมังคละ"}, {"no": 33, "id": 15280, "name": "นางสาวเพ็ญพิชชา ผ่านแสนเสาร์"}, {"no": 34, "id": 16243, "name": "นายสุพัฒน์พงษ์ ชัยปัญญา"}], "6/5": [{"no": 1, "id": 13387, "name": "นายจิรชัย ซุยโพธิ์น้อย"}, {"no": 2, "id": 13569, "name": "นายเจษฎา สาระคำ"}, {"no": 3, "id": 15216, "name": "นายฉัตรชัย มุ่งงาม"}, {"no": 4, "id": 15217, "name": "นายณรงศ์ธร บุตดาวงศ์"}, {"no": 5, "id": 13465, "name": "นายณัฐพล เหล่าใหญ่"}, {"no": 6, "id": 13606, "name": "นายทีปกร เพ็งจันทร์"}, {"no": 7, "id": 13506, "name": "นายปราราเมศ ค้ำจุน"}, {"no": 8, "id": 13576, "name": "นายภาณุวิชญ์ แก้วกาหลง"}, {"no": 9, "id": 15218, "name": "นายรัฐภูมิ คงสุวรรณ"}, {"no": 10, "id": 14171, "name": "นายศุภชัย ประทุมมา"}, {"no": 11, "id": 15220, "name": "นายอัษนี น้อยวิมล"}, {"no": 12, "id": 13434, "name": "นางสาวกมลวรรณ กองแก้ว"}, {"no": 13, "id": 14154, "name": "นางสาวชุติมา พันธ์แดง"}, {"no": 14, "id": 15221, "name": "นางสาวฐิติรัตน์ โพธิ์พยัคฆ์"}, {"no": 15, "id": 15222, "name": "นางสาวณัฐณิชา ศรีบัวลา"}, {"no": 16, "id": 15223, "name": "นางสาวณัฐธิดา ชนูนันท์"}, {"no": 17, "id": 13447, "name": "นางสาวทิพานัน นาไพรวัลย์"}, {"no": 18, "id": 13448, "name": "นางสาวธันชนก สิงห์ทองไชย"}, {"no": 19, "id": 13540, "name": "นางสาวนารีรัตน์ จัดกระโทก"}, {"no": 20, "id": 13451, "name": "นางสาวปนัดดา หวานเพราะ"}, {"no": 21, "id": 13452, "name": "นางสาวประกาวง ปาโม๊ะ"}, {"no": 22, "id": 15224, "name": "นางสาวพรเทวา พรมเพ็ญ"}, {"no": 23, "id": 13409, "name": "นางสาวพิชญา ชินโชติ"}, {"no": 24, "id": 14177, "name": "นางสาวภัคจิรา ทาลุมภุก"}, {"no": 25, "id": 15225, "name": "นางสาวภารตี สารสอน"}, {"no": 26, "id": 13410, "name": "นางสาวมัญชุพร ซอนภา"}, {"no": 27, "id": 13458, "name": "นางสาวสรัญชนา ตาลทรัพย์"}, {"no": 28, "id": 14725, "name": "นางสาวสุชาวลี ชินศรี"}, {"no": 29, "id": 13459, "name": "นางสาวสุพรรษา รูปเคน"}, {"no": 30, "id": 15252, "name": "นายมงคล กองธรรม"}, {"no": 31, "id": 13493, "name": "นางสาวสุวรรณภา ขามเดช"}, {"no": 32, "id": 15191, "name": "นายพีรทัต ปิยะมาตย์"}]};
+
+/* ---------------- view switching ---------------- */
+function showView(view) {
+  document.getElementById('submitSection').hidden = view !== 'form';
+  document.getElementById('adminGateSection').hidden = view !== 'gate';
+  document.getElementById('adminSection').hidden = view !== 'admin';
+}
+
+document.getElementById('adminLink').addEventListener('click', function (e) {
+  e.preventDefault();
+  document.getElementById('adminPassInput').value = '';
+  document.getElementById('adminGateError').classList.remove('show');
+  showView('gate');
+  document.getElementById('adminPassInput').focus();
+});
+
+document.getElementById('backToFormLink').addEventListener('click', function (e) {
+  e.preventDefault();
+  showView('form');
+});
+
+document.getElementById('logoutAdminLink').addEventListener('click', function (e) {
+  e.preventDefault();
+  showView('form');
+});
+
+function tryUnlockAdmin() {
+  const val = document.getElementById('adminPassInput').value;
+  if (val === ADMIN_PASSCODE) {
+    document.getElementById('adminGateError').classList.remove('show');
+    showView('admin');
+    loadData();
+  } else {
+    document.getElementById('adminGateError').classList.add('show');
+  }
+}
+
+document.getElementById('adminUnlockBtn').addEventListener('click', tryUnlockAdmin);
+document.getElementById('adminPassInput').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') { e.preventDefault(); tryUnlockAdmin(); }
+});
+
+/* ---------------- submit form logic ---------------- */
+const roomGrid = document.getElementById('roomGrid');
+const memberSearch = document.getElementById('memberSearch');
+const memberList = document.getElementById('memberList');
+const selectedSummary = document.getElementById('selectedSummary');
+const setupWarning = document.getElementById('setupWarning');
+const resultMsg = document.getElementById('resultMsg');
+const submitBtn = document.getElementById('submitBtn');
+
+let currentRoom = null;
+let selectedIds = new Set();
+
+if (!SCRIPT_URL || SCRIPT_URL.indexOf('PASTE_YOUR') === 0) {
+  setupWarning.textContent = 'ยังไม่ได้ตั้งค่าปลายทางบันทึกข้อมูล (SCRIPT_URL) — ฟอร์มนี้จะยังส่งไม่ได้จนกว่าจะใส่ลิงก์ Apps Script ในไฟล์';
+  setupWarning.classList.add('show');
+}
+
+Object.keys(STUDENTS).forEach(room => {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'room-btn';
+  btn.textContent = 'ม.' + room;
+  btn.addEventListener('click', () => selectRoom(room, btn));
+  roomGrid.appendChild(btn);
+});
+
+function selectRoom(room, btnEl) {
+  currentRoom = room;
+  selectedIds = new Set();
+  document.querySelectorAll('.room-btn').forEach(b => b.classList.remove('active'));
+  btnEl.classList.add('active');
+  memberSearch.disabled = false;
+  memberSearch.value = '';
+  renderMembers();
+  updateSummary();
+}
+
+function renderMembers(filter) {
+  memberList.classList.remove('disabled');
+  memberList.innerHTML = '';
+  const list = STUDENTS[currentRoom] || [];
+  const f = (filter || '').trim().toLowerCase();
+  list.forEach(s => {
+    const match = !f || s.name.toLowerCase().includes(f);
+    const item = document.createElement('label');
+    item.className = 'member-item' + (match ? '' : ' hidden');
+    item.innerHTML =
+      '<input type="checkbox" data-id="' + s.id + '" data-name="' + s.name.replace(/"/g,'&quot;') + '">' +
+      '<span class="no">' + s.no + '.</span>' +
+      '<span class="name">' + s.name + '</span>';
+    const checkbox = item.querySelector('input');
+    checkbox.checked = selectedIds.has(s.id);
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) selectedIds.add(s.id);
+      else selectedIds.delete(s.id);
+      updateSummary();
+    });
+    memberList.appendChild(item);
+  });
+}
+
+memberSearch.addEventListener('input', () => renderMembers(memberSearch.value));
+
+function updateSummary() {
+  if (selectedIds.size === 0) {
+    selectedSummary.textContent = '';
+    return;
+  }
+  const list = STUDENTS[currentRoom] || [];
+  const names = list.filter(s => selectedIds.has(s.id)).map(s => s.name);
+  selectedSummary.textContent = 'เลือกแล้ว ' + names.length + ' คน: ' + names.join(', ');
+}
+
+document.getElementById('submitForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+  resultMsg.classList.remove('show', 'success', 'error');
+
+  const title = document.getElementById('title').value.trim();
+  const link = document.getElementById('link').value.trim();
+  const list = STUDENTS[currentRoom] || [];
+  const memberNames = list.filter(s => selectedIds.has(s.id)).map(s => s.name);
+
+  if (!currentRoom) return showResult('กรุณาเลือกห้อง', 'error');
+  if (memberNames.length === 0) return showResult('กรุณาเลือกสมาชิกในกลุ่มอย่างน้อย 1 คน', 'error');
+  if (!title) return showResult('กรุณากรอกชื่อเรื่อง', 'error');
+  if (!link) return showResult('กรุณากรอกลิงก์วิดีโอ', 'error');
+  const linkLower = link.toLowerCase();
+  if (!(linkLower.indexOf('http://') === 0 || linkLower.indexOf('https://') === 0)) return showResult('ลิงก์วิดีโอต้องขึ้นต้นด้วย http:// หรือ https://', 'error');
+  if (!SCRIPT_URL || SCRIPT_URL.indexOf('PASTE_YOUR') === 0) return showResult('ฟอร์มยังไม่ได้เชื่อมต่อปลายทางบันทึกข้อมูล กรุณาแจ้งผู้ดูแล', 'error');
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'กำลังส่ง...';
+
+  const payload = new URLSearchParams({
+    room: 'ม.' + currentRoom,
+    members: memberNames.join(', '),
+    title: title,
+    link: link
+  });
+
+  fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: payload })
+    .then(() => {
+      showResult('ส่งงานเรียบร้อยแล้ว ขอบคุณครับ/ค่ะ', 'success');
+      document.getElementById('submitForm').reset();
+      selectedIds = new Set();
+      currentRoom = null;
+      document.querySelectorAll('.room-btn').forEach(b => b.classList.remove('active'));
+      memberSearch.disabled = true;
+      memberList.className = 'member-list disabled';
+      memberList.textContent = 'กรุณาเลือกห้องก่อน';
+      selectedSummary.textContent = '';
+    })
+    .catch(() => {
+      showResult('ส่งงานไม่สำเร็จ กรุณาลองใหม่อีกครั้ง หรือแจ้งคุณครู', 'error');
+    })
+    .finally(() => {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'ส่งงาน';
+    });
+});
+
+function showResult(text, type) {
+  resultMsg.textContent = text;
+  resultMsg.className = 'msg show ' + type;
+  resultMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+/* ---------------- admin dashboard logic ---------------- */
+let allRows = [];
+let filteredRows = [];
+
+const tableEl = document.getElementById('dataTable');
+const tbody = document.getElementById('tableBody');
+const stateBox = document.getElementById('stateBox');
+const countBadge = document.getElementById('countBadge');
+const setupMsg = document.getElementById('setupMsg');
+const searchBox = document.getElementById('searchBox');
+const roomFilter = document.getElementById('roomFilter');
+
+document.getElementById('printDate').textContent = 'พิมพ์เมื่อ ' + new Date().toLocaleString('th-TH');
+
+if (!SCRIPT_URL || SCRIPT_URL.indexOf('PASTE_YOUR') === 0) {
+  setupMsg.textContent = 'ยังไม่ได้ตั้งค่า SCRIPT_URL — กรุณาใส่ลิงก์ Apps Script Web App';
+  setupMsg.classList.add('show');
+  stateBox.textContent = 'รอการตั้งค่า';
+}
+
+document.getElementById('refreshBtn').addEventListener('click', loadData);
+document.getElementById('exportExcelBtn').addEventListener('click', exportExcel);
+document.getElementById('exportPdfBtn').addEventListener('click', () => window.print());
+searchBox.addEventListener('input', applyFilters);
+roomFilter.addEventListener('change', applyFilters);
+
+function loadData() {
+  if (!SCRIPT_URL || SCRIPT_URL.indexOf('PASTE_YOUR') === 0) return;
+
+  tableEl.style.display = 'none';
+  stateBox.style.display = 'block';
+  stateBox.className = 'adm-state';
+  stateBox.textContent = 'กำลังโหลดข้อมูล...';
+
+  const cbName = 'jsonpCallback_' + Date.now();
+  const script = document.createElement('script');
+  let done = false;
+
+  const timeout = setTimeout(() => {
+    if (!done) {
+      showError('โหลดข้อมูลไม่สำเร็จ (หมดเวลา) กรุณาตรวจสอบ SCRIPT_URL และสิทธิ์การเข้าถึง Web app');
+      cleanup();
+    }
+  }, 10000);
+
+  window[cbName] = function (data) {
+    done = true;
+    clearTimeout(timeout);
+    if (data && data.status === 'success') {
+      allRows = data.rows || [];
+      applyFilters();
+    } else {
+      showError('เกิดข้อผิดพลาดจากปลายทางข้อมูล');
+    }
+    cleanup();
+  };
+
+  script.src = SCRIPT_URL + (SCRIPT_URL.indexOf('?') > -1 ? '&' : '?') + 'callback=' + cbName;
+  script.onerror = function () {
+    if (!done) {
+      showError('เชื่อมต่อ SCRIPT_URL ไม่สำเร็จ กรุณาตรวจสอบลิงก์');
+    }
+    cleanup();
+  };
+  document.body.appendChild(script);
+
+  function cleanup() {
+    setTimeout(() => {
+      delete window[cbName];
+      script.remove();
+    }, 0);
+  }
+}
+
+function applyFilters() {
+  const q = searchBox.value.trim().toLowerCase();
+  const room = roomFilter.value;
+  filteredRows = allRows.filter(r => {
+    if (room && r.room !== room) return false;
+    if (!q) return true;
+    return (r.members || '').toLowerCase().includes(q) ||
+           (r.title || '').toLowerCase().includes(q) ||
+           (r.room || '').toLowerCase().includes(q);
+  });
+  render();
+}
+
+function render() {
+  countBadge.textContent = filteredRows.length + ' รายการ';
+
+  if (filteredRows.length === 0) {
+    tableEl.style.display = 'none';
+    stateBox.style.display = 'block';
+    stateBox.className = 'adm-state';
+    stateBox.textContent = allRows.length === 0 ? 'ยังไม่มีการส่งงาน' : 'ไม่พบรายการที่ตรงกับการค้นหา';
+    return;
+  }
+
+  stateBox.style.display = 'none';
+  tableEl.style.display = 'table';
+  tbody.innerHTML = filteredRows.map(r => `
+    <tr>
+      <td>${escapeHtml(r.time)}</td>
+      <td>${escapeHtml(r.room)}</td>
+      <td>${escapeHtml(r.members)}</td>
+      <td>${escapeHtml(r.title)}</td>
+      <td class="link"><a href="${escapeHtml(r.link)}" target="_blank" rel="noopener">เปิดลิงก์</a></td>
+    </tr>
+  `).join('');
+}
+
+function showError(msg) {
+  tableEl.style.display = 'none';
+  stateBox.style.display = 'block';
+  stateBox.className = 'adm-state error';
+  stateBox.textContent = msg;
+}
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function exportExcel() {
+  if (!filteredRows.length) { alert('ไม่มีข้อมูลให้ดาวน์โหลด'); return; }
+  const data = filteredRows.map(r => ({
+    'เวลาที่ส่ง': r.time,
+    'ห้อง': r.room,
+    'สมาชิกในกลุ่ม': r.members,
+    'ชื่อเรื่อง': r.title,
+    'ลิงก์วิดีโอ': r.link
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  ws['!cols'] = [{ wch: 16 }, { wch: 8 }, { wch: 45 }, { wch: 35 }, { wch: 40 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'คำตอบ');
+  const stamp = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, 'video-submissions-' + stamp + '.xlsx');
+}
+
+/* start on the submit form */
+showView('form');
+</script>
+</body>
+</html>
